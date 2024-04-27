@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/quickfixgo/quickfix"
+	"github.com/quickfixgo/quickfix/config"
 )
 
 // TradeClient implements the quickfix.Application interface
@@ -135,6 +136,15 @@ func execute(cmd *cobra.Command, args []string) error {
 
 	utils.PrintConfig("initiator", bytes.NewReader(stringData))
 
+	var senderCompId, targetCompID string
+	globalsettings := appSettings.GlobalSettings()
+	if globalsettings.HasSetting(config.SenderCompID){
+		senderCompId,_ = globalsettings.Setting(config.SenderCompID)
+	}
+	if globalsettings.HasSetting(config.TargetCompID){
+		targetCompID,_ = globalsettings.Setting(config.TargetCompID)
+	}
+
 Loop:
 	for {
 		action, err := internal.QueryAction()
@@ -150,7 +160,7 @@ Loop:
 			err = internal.QueryCancelOrder()
 
 		case "3":
-			err = internal.QueryMarketDataRequest()
+			err = internal.QueryMarketDataRequest(senderCompId, targetCompID)
 
 		case "4":
 			//quit

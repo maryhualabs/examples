@@ -100,6 +100,7 @@ func QueryAction() (string, error) {
 }
 
 func queryVersion() (string, error) {
+	/*
 	fmt.Println()
 	fmt.Println("1) FIX.4.0")
 	fmt.Println("2) FIX.4.1")
@@ -130,6 +131,8 @@ func queryVersion() (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown BeginString choice: %v", scanner.Text())
+	*/
+	return quickfix.BeginStringFIX44, nil
 }
 
 func queryClOrdID() field.ClOrdIDField {
@@ -245,6 +248,7 @@ type header interface {
 }
 
 func queryHeader(h header) {
+	/*
 	h.Set(querySenderCompID())
 	h.Set(queryTargetCompID())
 	if ok := queryConfirm("Use a TargetSubID"); !ok {
@@ -252,6 +256,11 @@ func queryHeader(h header) {
 	}
 
 	h.Set(queryTargetSubID())
+	*/
+	//h.Set(field.NewSenderCompID(senderCompId))
+	//h.Set(field.NewTargetCompID(targetCompId))
+	h.Set(field.NewSenderCompID("TW"))
+	h.Set(field.NewTargetCompID("ISLD"))
 }
 
 func queryNewOrderSingle40() fix40nos.NewOrderSingle {
@@ -269,7 +278,7 @@ func queryNewOrderSingle40() fix40nos.NewOrderSingle {
 	}
 
 	order.Set(queryTimeInForce())
-	queryHeader(order.Header.Header)
+	queryHeader(order.Header)
 
 	return order
 }
@@ -484,11 +493,11 @@ func queryMarketDataRequest44() fix44mdr.MarketDataRequest {
 	entryTypes := fix44mdr.NewNoMDEntryTypesRepeatingGroup()
 	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
 	request.SetNoMDEntryTypes(entryTypes)
-
+	/*
 	relatedSym := fix44mdr.NewNoRelatedSymRepeatingGroup()
 	relatedSym.Add().SetSymbol("LNUX")
 	request.SetNoRelatedSym(relatedSym)
-
+	*/
 	queryHeader(request.Header)
 	return request
 }
@@ -589,7 +598,7 @@ func QueryCancelOrder() (err error) {
 	return
 }
 
-func QueryMarketDataRequest() error {
+func QueryMarketDataRequest(senderCompId,targetCompId string) error {
 	beginString, err := queryVersion()
 	if err != nil {
 		return err
