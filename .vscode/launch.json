@@ -12,6 +12,14 @@
             "program": "qf.go",
             "args": ["ordermatch"]
         },
+        {
+            "name": "client",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "qf.go",
+            "args": ["tradeclient"]
+        },
 
         
     ]

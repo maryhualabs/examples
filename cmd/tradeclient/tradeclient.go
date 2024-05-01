@@ -27,6 +27,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/quickfixgo/quickfix"
+	"github.com/quickfixgo/field"
 	"github.com/quickfixgo/quickfix/config"
 )
 
@@ -49,7 +50,18 @@ func (e TradeClient) FromAdmin(msg *quickfix.Message, sessionID quickfix.Session
 }
 
 // ToAdmin implemented as part of Application interface
-func (e TradeClient) ToAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) {}
+func (e TradeClient) ToAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) {
+	msgType,err := msg.MsgType()
+	if err != nil {
+		println("wrong message type")
+	}
+
+	if msgType == "A"{
+		msg.Body.Set(field.NewUsername("9f7b3b438aa8007e122e130ae80f46fdd807600d355ff8a754afacf29313b507"))
+	}
+
+	utils.PrintInfo(fmt.Sprintf("ToAdmin: %s", msg.String()))
+}
 
 // ToApp implemented as part of Application interface
 func (e TradeClient) ToApp(msg *quickfix.Message, sessionID quickfix.SessionID) (err error) {

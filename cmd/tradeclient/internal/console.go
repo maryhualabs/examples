@@ -88,6 +88,7 @@ func queryFieldChoices(fieldName string, choices []string, values []string) stri
 }
 
 func QueryAction() (string, error) {
+	/*
 	fmt.Println()
 	fmt.Println("1) Enter Order")
 	fmt.Println("2) Cancel Order")
@@ -97,6 +98,8 @@ func QueryAction() (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	return scanner.Text(), scanner.Err()
+	*/
+	return "3",nil
 }
 
 func queryVersion() (string, error) {
@@ -623,6 +626,7 @@ func QueryMarketDataRequest(senderCompId,targetCompId string) error {
 	}
 
 	if queryConfirm("Send MarketDataRequest") {
+		fmt.Println("quickfix.Send(req)=>")
 		return quickfix.Send(req)
 	}
 

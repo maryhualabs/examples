@@ -81,6 +81,7 @@ func (a Application) ToApp(msg *quickfix.Message, sessionID quickfix.SessionID) 
 
 // FromAdmin implemented as part of Application interface
 func (a Application) FromAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) quickfix.MessageRejectError {
+	fmt.Printf("FromAdmin ###########>%+v\n",msg)
 	return nil
 }
 
@@ -218,6 +219,11 @@ func (a *Application) onMarketDataRequest(msg marketdatarequest.MarketDataReques
 		fmt.Println(sendErr)
 	}
 
+	errUpdate := StartUpdateRefresh()
+	if errUpdate != nil {
+		fmt.Printf("failed to start update refresher!!")
+	}
+
 	return nil
 }
 
@@ -279,9 +285,8 @@ func StartUpdateRefresh() (err error) {
 	fmt.Printf("StartUpdateRefresh==>")
 	go func(){
 		for j := 0;;j++{
-			fmt.Printf("StartUpdateRefresh==>No. %v\n", fmt.Sprint(j))
-
-			time.Sleep(10*time.Second)
+			
+			time.Sleep(20*time.Second)
 
 			marketdatafullrefresh := marketdatasnapshotfullrefresh.New()
 
@@ -317,7 +322,7 @@ func StartUpdateRefresh() (err error) {
 			marketdatafullrefresh.Header.SetSenderCompID("ISLD")
 
 			sendErr := quickfix.Send(marketdatafullrefresh)
-			fmt.Printf("StartUpdateRefresh==>No. %v==end, error=%v\n", fmt.Sprint(j),sendErr)
+			
 			if sendErr != nil{
 				fmt.Println(sendErr)
 			}
@@ -393,12 +398,7 @@ func execute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to start FIX acceptor: %s", err)
 	}
 
-	err = StartUpdateRefresh()
-	if err != nil {
-		fmt.Printf("failed to start update refresher!!")
-	}
 	
-
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	go func() {
