@@ -21,14 +21,18 @@ import (
 	"io"
 	"os"
 	"path"
+	"crypto/ed25519"
+	"encoding/hex"
+	"strconv"
 
 	"github.com/quickfixgo/examples/cmd/tradeclient/internal"
 	"github.com/quickfixgo/examples/cmd/utils"
 	"github.com/spf13/cobra"
 
-	"github.com/quickfixgo/quickfix"
 	"github.com/quickfixgo/field"
-	"github.com/quickfixgo/quickfix/config"
+	"github.com/quickfixgo/quickfix"
+	"github.com/quickfixgo/fix44/logon"
+	
 )
 
 // TradeClient implements the quickfix.Application interface
@@ -36,31 +40,91 @@ type TradeClient struct {
 }
 
 // OnCreate implemented as part of Application interface
-func (e TradeClient) OnCreate(sessionID quickfix.SessionID) {}
+func (e TradeClient) OnCreate(sessionID quickfix.SessionID) {
+	fmt.Printf("initiator session Id: %s\n", sessionID)
+}
 
 // OnLogon implemented as part of Application interface
 func (e TradeClient) OnLogon(sessionID quickfix.SessionID) {}
 
 // OnLogout implemented as part of Application interface
-func (e TradeClient) OnLogout(sessionID quickfix.SessionID) {}
+func (e TradeClient) OnLogout(sessionID quickfix.SessionID) {
+	fmt.Printf("OnLogout: %s\n", sessionID)
+}
 
 // FromAdmin implemented as part of Application interface
 func (e TradeClient) FromAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) (reject quickfix.MessageRejectError) {
+	utils.PrintInfo(fmt.Sprintf("FromAdmin: %s\n", msg.String()))
 	return nil
 }
 
+
+const (
+	FIX_SEP = "\u0001"
+	Publickey ="2e8fea3e981fe67995454becedecdd74bfcdc346d83a3660cbf71a26e513f014"
+	Privatekey = "7284a20e7c9f033aacf6b8184eb651679e499fb29447cc9f462fbd8155c99d042e8fea3e981fe67995454becedecdd74bfcdc346d83a3660cbf71a26e513f014"
+	// APIKey = "83a538df07046f4430303faf09e9c6933306b5e7f4157b5c0cdc35d16f0f9033"
+	// APIKey = "4044a57206f7494b8692079e720aa911f3234e4d61079db28d36a405ae3630cb"
+	//use the api key ID for now
+	APIKey = "5dc3632619bbb1a5e92070db90f1f476de646ef4b1ad756e341a47f851467bab"  
+
+)
+
 // ToAdmin implemented as part of Application interface
 func (e TradeClient) ToAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) {
-	msgType,err := msg.MsgType()
+	msgType, err := msg.MsgType()
 	if err != nil {
 		println("wrong message type")
 	}
 
-	if msgType == "A"{
-		msg.Body.Set(field.NewUsername("9f7b3b438aa8007e122e130ae80f46fdd807600d355ff8a754afacf29313b507"))
-	}
+	if msgType == "A" {		
+		msg.Body.Set(field.NewPassword(APIKey))
+		signature,err := e.sign(msg); 
+		if err != nil{
+			println( "error in sign the message")
+		}		
+		msg.Body.Set(field.NewRawData(signature))
+	}	
 
 	utils.PrintInfo(fmt.Sprintf("ToAdmin: %s", msg.String()))
+}
+
+func (e TradeClient) sign(logonmsg *quickfix.Message) (string,error){
+	msg := logon.FromMessage(logonmsg)
+
+	sendingTime, err := msg.GetSendingTime()
+	if err != nil {
+		println("error in getting SendingTime from the logon")
+		return "",&quickfix.RejectLogon{Text: "invalid SendingTime"}
+	}
+
+	seqNum, err := msg.GetMsgSeqNum()
+	if err != nil {
+		println("error in getting MsgSeqNum from the logon")
+		return "",&quickfix.RejectLogon{Text: "invalid MsgSeqNum"}
+	}
+
+	senderCompID, err := msg.GetSenderCompID()
+	if err != nil {
+		println("error in getting SenderCompID from the logon")
+		return "",&quickfix.RejectLogon{Text: "invalid SenderCompID"}
+	}
+
+	targetCompID, err := msg.GetTargetCompID()
+	if err != nil {
+		println("error in getting TargetCompID from the logon")
+		return "",&quickfix.RejectLogon{Text: "invalid TargetCompID"}
+	}
+
+	msgToSign := sendingTime.Format("20060102-15:04:05.000") + FIX_SEP +
+		strconv.Itoa(seqNum) + FIX_SEP +
+		senderCompID + FIX_SEP +
+		targetCompID
+	
+	privateKeyBytes,_ := hex.DecodeString(Privatekey)
+	ed25519PrivateKey := ed25519.PrivateKey(privateKeyBytes)
+	signature := ed25519.Sign(ed25519PrivateKey, []byte(msgToSign))
+	return hex.EncodeToString(signature),nil
 }
 
 // ToApp implemented as part of Application interface
@@ -148,14 +212,16 @@ func execute(cmd *cobra.Command, args []string) error {
 
 	utils.PrintConfig("initiator", bytes.NewReader(stringData))
 
-	var senderCompId, targetCompID string
-	globalsettings := appSettings.GlobalSettings()
-	if globalsettings.HasSetting(config.SenderCompID){
-		senderCompId,_ = globalsettings.Setting(config.SenderCompID)
-	}
-	if globalsettings.HasSetting(config.TargetCompID){
-		targetCompID,_ = globalsettings.Setting(config.TargetCompID)
-	}
+	/*
+		var senderCompId, targetCompID string
+		globalsettings := appSettings.GlobalSettings()
+		if globalsettings.HasSetting(config.SenderCompID){
+			senderCompId,_ = globalsettings.Setting(config.SenderCompID)
+		}
+		if globalsettings.HasSetting(config.TargetCompID){
+			targetCompID,_ = globalsettings.Setting(config.TargetCompID)
+		}
+	*/
 
 Loop:
 	for {
@@ -166,14 +232,13 @@ Loop:
 
 		switch action {
 		case "1":
-			err = internal.QueryEnterOrder()
+			err = internal.QueryEnterOrder("CUST2_Order", "ANCHORAGE")
 
 		case "2":
 			err = internal.QueryCancelOrder()
 
 		case "3":
-			err = internal.QueryMarketDataRequest(senderCompId, targetCompID)
-
+			err = internal.QueryMarketDataRequest("CUST2_Marketdata", "ANCHORAGE")
 		case "4":
 			//quit
 			break Loop

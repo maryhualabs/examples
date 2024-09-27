@@ -19,6 +19,7 @@ import (
 	"bufio"
 	"fmt"
 	"time"
+	"math/rand"
 
 	"github.com/quickfixgo/enum"
 	"github.com/quickfixgo/field"
@@ -88,7 +89,7 @@ func queryFieldChoices(fieldName string, choices []string, values []string) stri
 }
 
 func QueryAction() (string, error) {
-	/*
+	
 	fmt.Println()
 	fmt.Println("1) Enter Order")
 	fmt.Println("2) Cancel Order")
@@ -98,8 +99,6 @@ func QueryAction() (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	return scanner.Text(), scanner.Err()
-	*/
-	return "3",nil
 }
 
 func queryVersion() (string, error) {
@@ -262,8 +261,13 @@ func queryHeader(h header) {
 	*/
 	//h.Set(field.NewSenderCompID(senderCompId))
 	//h.Set(field.NewTargetCompID(targetCompId))
-	h.Set(field.NewSenderCompID("TW"))
-	h.Set(field.NewTargetCompID("ISLD"))
+	h.Set(field.NewSenderCompID("CLIENT1_Order"))
+	h.Set(field.NewTargetCompID("ANCHOR"))
+}
+
+func setHeader(h header, senderCompId string, targetCompId string){
+	h.Set(field.NewSenderCompID(senderCompId))
+	h.Set(field.NewTargetCompID(targetCompId))
 }
 
 func queryNewOrderSingle40() fix40nos.NewOrderSingle {
@@ -352,26 +356,32 @@ func queryNewOrderSingle43() (msg *quickfix.Message) {
 	return
 }
 
-func queryNewOrderSingle44() (msg *quickfix.Message) {
-	var ordType field.OrdTypeField
-	order := fix44nos.New(queryClOrdID(), querySide(), field.NewTransactTime(time.Now()), queryOrdType(&ordType))
+func queryNewOrderSingle44(senderCompId,targetCompId,side,symbol,qty,price string) (msg *quickfix.Message) {
+	var ordType = enum.OrdType_LIMIT
+	order := fix44nos.New(field.NewClOrdID(strconv.Itoa(time.Now().Nanosecond())) , 
+	field.NewSide(enum.Side(side)), 
+	field.NewTransactTime(time.Now()), 
+	 field.NewOrdType(ordType) )
 	order.SetHandlInst("1")
-	order.Set(querySymbol())
-	order.Set(queryOrderQty())
-
-	switch ordType.Value() {
-	case enum.OrdType_LIMIT, enum.OrdType_STOP_LIMIT:
-		order.Set(queryPrice())
-	}
-
-	switch ordType.Value() {
-	case enum.OrdType_STOP, enum.OrdType_STOP_LIMIT:
+	order.Set(field.NewSymbol(symbol))
+	ordqty,_:=decimal.NewFromString(qty)
+	order.Set(field.NewOrderQty( ordqty, 4))
+	order.Set( field.NewTimeInForce(enum.TimeInForce_FILL_OR_KILL) )
+	
+	switch ordType {
+	case enum.OrdType_LIMIT:
+		px,_:=decimal.NewFromString(price)
+		order.Set(field.NewPrice(px,5))
+	case enum.OrdType_STOP_LIMIT:
+		px,_:=decimal.NewFromString("3000.00")
+		order.Set(field.NewPrice(px,5))
 		order.Set(queryStopPx())
+	case enum.OrdType_STOP:
+		
 	}
 
-	order.Set(queryTimeInForce())
 	msg = order.ToMessage()
-	queryHeader(&msg.Header)
+	setHeader(&msg.Header, senderCompId,targetCompId)
 
 	return
 }
@@ -487,21 +497,26 @@ func queryMarketDataRequest43() fix43mdr.MarketDataRequest {
 	return request
 }
 
-func queryMarketDataRequest44() fix44mdr.MarketDataRequest {
-	request := fix44mdr.New(field.NewMDReqID("MARKETDATAID"),
-		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT),
+func queryMarketDataRequest44(senderCompId,targetCompId string) fix44mdr.MarketDataRequest {
+	request := fix44mdr.New(field.NewMDReqID(strconv.Itoa(time.Now().Nanosecond())),
+		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT_PLUS_UPDATES),
 		field.NewMarketDepth(0),
 	)
+	request.SetMDUpdateType(enum.MDUpdateType_INCREMENTAL_REFRESH)
 
 	entryTypes := fix44mdr.NewNoMDEntryTypesRepeatingGroup()
+	//noOfMDEntryTypes := entryTypes.Add()
 	entryTypes.Add().SetMDEntryType(enum.MDEntryType_BID)
+	entryTypes.Add().SetMDEntryType(enum.MDEntryType_OFFER)
 	request.SetNoMDEntryTypes(entryTypes)
-	/*
+
+	
 	relatedSym := fix44mdr.NewNoRelatedSymRepeatingGroup()
-	relatedSym.Add().SetSymbol("LNUX")
+	// relatedSym.Add().SetSymbol("ETH-USD")
+	relatedSym.Add().SetSymbol("BTC-USD")
 	request.SetNoRelatedSym(relatedSym)
-	*/
-	queryHeader(request.Header)
+
+	setHeader(request.Header, senderCompId,targetCompId )
 	return request
 }
 
@@ -523,18 +538,19 @@ func queryMarketDataRequest50() fix50mdr.MarketDataRequest {
 	return request
 }
 
-func QueryEnterOrder() (err error) {
+func QueryEnterOrder(senderCompId,targetCompId string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
 		}
 	}()
 
-	var beginString string
+	var beginString string = "FIX.4.4"
+	/*
 	beginString, err = queryVersion()
 	if err != nil {
 		return err
-	}
+	}*/
 
 	var order quickfix.Messagable
 	switch beginString {
@@ -551,12 +567,33 @@ func QueryEnterOrder() (err error) {
 		order = queryNewOrderSingle43()
 
 	case quickfix.BeginStringFIX44:
-		order = queryNewOrderSingle44()
+		symbol := "BTC-USD"
+		price := "60000"	
+		var side, qty string
 
+		start := time.Now()
+		midsize := 0.01
+		for i := range 1000 {
+			if i%2 == 0 {	
+				side = "2"			
+				qty = fmt.Sprintf("%f", midsize+float64(rand.Intn(10))/1000.0)				
+			}else {	
+				side = "2"			
+				qty = fmt.Sprintf("%f", midsize-float64(rand.Intn(10))/1000.0)			
+			}
+			//fmt.Printf("qty=%v,symbol=%s\n", qty,symbol)
+			order = queryNewOrderSingle44(senderCompId,targetCompId,side,symbol,qty,price)
+			quickfix.Send(order)
+			time.Sleep(1000 * time.Millisecond )
+		}
+		totoalTime := time.Since(start).Milliseconds()
+		fmt.Printf("sent 1000 orders in %v",totoalTime)
+
+		return
 	case quickfix.BeginStringFIXT11:
 		order = queryNewOrderSingle50()
 	}
-
+	
 	return quickfix.Send(order)
 }
 
@@ -616,19 +653,19 @@ func QueryMarketDataRequest(senderCompId,targetCompId string) error {
 		req = queryMarketDataRequest43()
 
 	case quickfix.BeginStringFIX44:
-		req = queryMarketDataRequest44()
+		req = queryMarketDataRequest44(senderCompId,targetCompId)
 
 	case quickfix.BeginStringFIXT11:
 		req = queryMarketDataRequest50()
 
 	default:
-		return fmt.Errorf("No test for version %v", beginString)
+		return fmt.Errorf("no test for version %v", beginString)
 	}
 
-	if queryConfirm("Send MarketDataRequest") {
-		fmt.Println("quickfix.Send(req)=>")
-		return quickfix.Send(req)
-	}
+	//if queryConfirm("Send MarketDataRequest") {
+	fmt.Println("quickfix.Send(req)=>")
+	return quickfix.Send(req)
+	//}
 
-	return nil
+	//return nil
 }
