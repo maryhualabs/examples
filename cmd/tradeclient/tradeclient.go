@@ -61,10 +61,7 @@ func (e TradeClient) FromAdmin(msg *quickfix.Message, sessionID quickfix.Session
 
 const (
 	FIX_SEP = "\u0001"
-	Publickey ="2e8fea3e981fe67995454becedecdd74bfcdc346d83a3660cbf71a26e513f014"
-	Privatekey = "7284a20e7c9f033aacf6b8184eb651679e499fb29447cc9f462fbd8155c99d042e8fea3e981fe67995454becedecdd74bfcdc346d83a3660cbf71a26e513f014"
-	// APIKey = "83a538df07046f4430303faf09e9c6933306b5e7f4157b5c0cdc35d16f0f9033"
-	// APIKey = "4044a57206f7494b8692079e720aa911f3234e4d61079db28d36a405ae3630cb"
+	
 	//use the api key ID for now
 	APIKey = "5dc3632619bbb1a5e92070db90f1f476de646ef4b1ad756e341a47f851467bab"  
 
