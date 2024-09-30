@@ -81,7 +81,7 @@ func (a Application) ToApp(msg *quickfix.Message, sessionID quickfix.SessionID) 
 
 // FromAdmin implemented as part of Application interface
 func (a Application) FromAdmin(msg *quickfix.Message, sessionID quickfix.SessionID) quickfix.MessageRejectError {
-	fmt.Printf("FromAdmin ###########>%+v\n",msg)
+	fmt.Printf("FromAdmin ###########>%+v\n", msg)
 	return nil
 }
 
@@ -188,24 +188,24 @@ func (a *Application) onMarketDataRequest(msg marketdatarequest.MarketDataReques
 	marketdatafullrefresh.SetMDReqID("MDReq1")
 	marketdatafullrefresh.SetProduct(enum.Product_CURRENCY)
 
-    noMDEntriesRptGrp := marketdatasnapshotfullrefresh.NewNoMDEntriesRepeatingGroup()
-	
+	noMDEntriesRptGrp := marketdatasnapshotfullrefresh.NewNoMDEntriesRepeatingGroup()
+
 	median_px := 68000.0
-	for i:=0;i<5;i++ {
-		sz := decimal.NewFromInt(int64(i+1))
+	for i := 0; i < 5; i++ {
+		sz := decimal.NewFromInt(int64(i + 1))
 		noMDEntries0 := noMDEntriesRptGrp.Add()
 		noMDEntries0.SetMDEntryType(enum.MDEntryType_BID)
 		var bid_px = median_px - (float64(i+1) * 5.0)
 		p0 := decimal.NewFromFloat(bid_px)
-		noMDEntries0.SetMDEntryPx(p0,5)
-		noMDEntries0.SetMDEntrySize(sz,2)
+		noMDEntries0.SetMDEntryPx(p0, 5)
+		noMDEntries0.SetMDEntrySize(sz, 2)
 
 		noMDEntries1 := noMDEntriesRptGrp.Add()
 		noMDEntries1.SetMDEntryType(enum.MDEntryType_OFFER)
-		var off_px = median_px + (float64(i+1)*5.0)
+		var off_px = median_px + (float64(i+1) * 5.0)
 		p1 := decimal.NewFromFloat(off_px)
-		noMDEntries1.SetMDEntryPx(p1,5)
-		noMDEntries1.SetMDEntrySize(sz,2)
+		noMDEntries1.SetMDEntryPx(p1, 5)
+		noMDEntries1.SetMDEntrySize(sz, 2)
 	}
 
 	marketdatafullrefresh.SetNoMDEntries(noMDEntriesRptGrp)
@@ -214,8 +214,8 @@ func (a *Application) onMarketDataRequest(msg marketdatarequest.MarketDataReques
 	marketdatafullrefresh.Header.SetSenderCompID("ISLD")
 
 	sendErr := quickfix.Send(marketdatafullrefresh)
-	
-	if sendErr != nil{
+
+	if sendErr != nil {
 		fmt.Println(sendErr)
 	}
 
@@ -283,37 +283,37 @@ func (a *Application) updateOrder(order internal.Order, status enum.OrdStatus) {
 
 func StartUpdateRefresh() (err error) {
 	fmt.Printf("StartUpdateRefresh==>")
-	go func(){
-		for j := 0;;j++{
-			
-			time.Sleep(20*time.Second)
+	go func() {
+		for j := 0; ; j++ {
+
+			time.Sleep(20 * time.Second)
 
 			marketdatafullrefresh := marketdatasnapshotfullrefresh.New()
 
 			marketdatafullrefresh.SetSymbol("BTC/USD")
-			marketdatafullrefresh.SetMDReqID("MDReq"+fmt.Sprint(j))
+			marketdatafullrefresh.SetMDReqID("MDReq" + fmt.Sprint(j))
 			marketdatafullrefresh.SetProduct(enum.Product_CURRENCY)
 
 			noMDEntriesRptGrp := marketdatasnapshotfullrefresh.NewNoMDEntriesRepeatingGroup()
-			
+
 			median_px := 68000.0 + float64(j*2)
-			for i:=0;i<5;i++ {
-				sz := decimal.NewFromInt(int64(i+1))
+			for i := 0; i < 5; i++ {
+				sz := decimal.NewFromInt(int64(i + 1))
 				sprd := float64(i+1) * 5.0
 
 				noMDEntries0 := noMDEntriesRptGrp.Add()
 				noMDEntries0.SetMDEntryType(enum.MDEntryType_BID)
 				var bid_px = median_px - sprd
 				p0 := decimal.NewFromFloat(bid_px)
-				noMDEntries0.SetMDEntryPx(p0,5)
-				noMDEntries0.SetMDEntrySize(sz,2)
+				noMDEntries0.SetMDEntryPx(p0, 5)
+				noMDEntries0.SetMDEntrySize(sz, 2)
 
 				noMDEntries1 := noMDEntriesRptGrp.Add()
 				noMDEntries1.SetMDEntryType(enum.MDEntryType_OFFER)
 				var off_px = median_px + sprd
 				p1 := decimal.NewFromFloat(off_px)
-				noMDEntries1.SetMDEntryPx(p1,5)
-				noMDEntries1.SetMDEntrySize(sz,2)
+				noMDEntries1.SetMDEntryPx(p1, 5)
+				noMDEntries1.SetMDEntrySize(sz, 2)
 			}
 
 			marketdatafullrefresh.SetNoMDEntries(noMDEntriesRptGrp)
@@ -322,8 +322,8 @@ func StartUpdateRefresh() (err error) {
 			marketdatafullrefresh.Header.SetSenderCompID("ISLD")
 
 			sendErr := quickfix.Send(marketdatafullrefresh)
-			
-			if sendErr != nil{
+
+			if sendErr != nil {
 				fmt.Println(sendErr)
 			}
 		}
@@ -398,7 +398,6 @@ func execute(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unable to start FIX acceptor: %s", err)
 	}
 
-	
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 	go func() {

@@ -18,8 +18,8 @@ package internal
 import (
 	"bufio"
 	"fmt"
-	"time"
 	"math/rand"
+	"time"
 
 	"github.com/quickfixgo/enum"
 	"github.com/quickfixgo/field"
@@ -89,7 +89,7 @@ func queryFieldChoices(fieldName string, choices []string, values []string) stri
 }
 
 func QueryAction() (string, error) {
-	
+
 	fmt.Println()
 	fmt.Println("1) Enter Order")
 	fmt.Println("2) Cancel Order")
@@ -103,36 +103,36 @@ func QueryAction() (string, error) {
 
 func queryVersion() (string, error) {
 	/*
-	fmt.Println()
-	fmt.Println("1) FIX.4.0")
-	fmt.Println("2) FIX.4.1")
-	fmt.Println("3) FIX.4.2")
-	fmt.Println("4) FIX.4.3")
-	fmt.Println("5) FIX.4.4")
-	fmt.Println("6) FIXT.1.1 (FIX.5.0)")
-	fmt.Print("BeginString: ")
+		fmt.Println()
+		fmt.Println("1) FIX.4.0")
+		fmt.Println("2) FIX.4.1")
+		fmt.Println("3) FIX.4.2")
+		fmt.Println("4) FIX.4.3")
+		fmt.Println("5) FIX.4.4")
+		fmt.Println("6) FIXT.1.1 (FIX.5.0)")
+		fmt.Print("BeginString: ")
 
-	scanner := bufio.NewScanner(os.Stdin)
-	if !scanner.Scan() {
-		return "", scanner.Err()
-	}
+		scanner := bufio.NewScanner(os.Stdin)
+		if !scanner.Scan() {
+			return "", scanner.Err()
+		}
 
-	switch scanner.Text() {
-	case "1":
-		return quickfix.BeginStringFIX40, nil
-	case "2":
-		return quickfix.BeginStringFIX41, nil
-	case "3":
-		return quickfix.BeginStringFIX42, nil
-	case "4":
-		return quickfix.BeginStringFIX43, nil
-	case "5":
-		return quickfix.BeginStringFIX44, nil
-	case "6":
-		return quickfix.BeginStringFIXT11, nil
-	}
+		switch scanner.Text() {
+		case "1":
+			return quickfix.BeginStringFIX40, nil
+		case "2":
+			return quickfix.BeginStringFIX41, nil
+		case "3":
+			return quickfix.BeginStringFIX42, nil
+		case "4":
+			return quickfix.BeginStringFIX43, nil
+		case "5":
+			return quickfix.BeginStringFIX44, nil
+		case "6":
+			return quickfix.BeginStringFIXT11, nil
+		}
 
-	return "", fmt.Errorf("unknown BeginString choice: %v", scanner.Text())
+		return "", fmt.Errorf("unknown BeginString choice: %v", scanner.Text())
 	*/
 	return quickfix.BeginStringFIX44, nil
 }
@@ -251,13 +251,13 @@ type header interface {
 
 func queryHeader(h header) {
 	/*
-	h.Set(querySenderCompID())
-	h.Set(queryTargetCompID())
-	if ok := queryConfirm("Use a TargetSubID"); !ok {
-		return
-	}
+		h.Set(querySenderCompID())
+		h.Set(queryTargetCompID())
+		if ok := queryConfirm("Use a TargetSubID"); !ok {
+			return
+		}
 
-	h.Set(queryTargetSubID())
+		h.Set(queryTargetSubID())
 	*/
 	//h.Set(field.NewSenderCompID(senderCompId))
 	//h.Set(field.NewTargetCompID(targetCompId))
@@ -265,7 +265,7 @@ func queryHeader(h header) {
 	h.Set(field.NewTargetCompID("ANCHOR"))
 }
 
-func setHeader(h header, senderCompId string, targetCompId string){
+func setHeader(h header, senderCompId string, targetCompId string) {
 	h.Set(field.NewSenderCompID(senderCompId))
 	h.Set(field.NewTargetCompID(targetCompId))
 }
@@ -356,32 +356,32 @@ func queryNewOrderSingle43() (msg *quickfix.Message) {
 	return
 }
 
-func queryNewOrderSingle44(senderCompId,targetCompId,side,symbol,qty,price string) (msg *quickfix.Message) {
+func queryNewOrderSingle44(senderCompId, targetCompId, side, symbol, qty, price string) (msg *quickfix.Message) {
 	var ordType = enum.OrdType_LIMIT
-	order := fix44nos.New(field.NewClOrdID(strconv.Itoa(time.Now().Nanosecond())) , 
-	field.NewSide(enum.Side(side)), 
-	field.NewTransactTime(time.Now()), 
-	 field.NewOrdType(ordType) )
+	order := fix44nos.New(field.NewClOrdID(strconv.Itoa(time.Now().Nanosecond())),
+		field.NewSide(enum.Side(side)),
+		field.NewTransactTime(time.Now()),
+		field.NewOrdType(ordType))
 	order.SetHandlInst("1")
 	order.Set(field.NewSymbol(symbol))
-	ordqty,_:=decimal.NewFromString(qty)
-	order.Set(field.NewOrderQty( ordqty, 4))
-	order.Set( field.NewTimeInForce(enum.TimeInForce_FILL_OR_KILL) )
-	
+	ordqty, _ := decimal.NewFromString(qty)
+	order.Set(field.NewOrderQty(ordqty, 4))
+	order.Set(field.NewTimeInForce(enum.TimeInForce_FILL_OR_KILL))
+
 	switch ordType {
 	case enum.OrdType_LIMIT:
-		px,_:=decimal.NewFromString(price)
-		order.Set(field.NewPrice(px,5))
+		px, _ := decimal.NewFromString(price)
+		order.Set(field.NewPrice(px, 5))
 	case enum.OrdType_STOP_LIMIT:
-		px,_:=decimal.NewFromString("3000.00")
-		order.Set(field.NewPrice(px,5))
+		px, _ := decimal.NewFromString("3000.00")
+		order.Set(field.NewPrice(px, 5))
 		order.Set(queryStopPx())
 	case enum.OrdType_STOP:
-		
+
 	}
 
 	msg = order.ToMessage()
-	setHeader(&msg.Header, senderCompId,targetCompId)
+	setHeader(&msg.Header, senderCompId, targetCompId)
 
 	return
 }
@@ -497,7 +497,7 @@ func queryMarketDataRequest43() fix43mdr.MarketDataRequest {
 	return request
 }
 
-func queryMarketDataRequest44(senderCompId,targetCompId string) fix44mdr.MarketDataRequest {
+func queryMarketDataRequest44(senderCompId, targetCompId string) fix44mdr.MarketDataRequest {
 	request := fix44mdr.New(field.NewMDReqID(strconv.Itoa(time.Now().Nanosecond())),
 		field.NewSubscriptionRequestType(enum.SubscriptionRequestType_SNAPSHOT_PLUS_UPDATES),
 		field.NewMarketDepth(0),
@@ -510,13 +510,12 @@ func queryMarketDataRequest44(senderCompId,targetCompId string) fix44mdr.MarketD
 	entryTypes.Add().SetMDEntryType(enum.MDEntryType_OFFER)
 	request.SetNoMDEntryTypes(entryTypes)
 
-	
 	relatedSym := fix44mdr.NewNoRelatedSymRepeatingGroup()
 	// relatedSym.Add().SetSymbol("ETH-USD")
 	relatedSym.Add().SetSymbol("BTC-USD")
 	request.SetNoRelatedSym(relatedSym)
 
-	setHeader(request.Header, senderCompId,targetCompId )
+	setHeader(request.Header, senderCompId, targetCompId)
 	return request
 }
 
@@ -538,7 +537,7 @@ func queryMarketDataRequest50() fix50mdr.MarketDataRequest {
 	return request
 }
 
-func QueryEnterOrder(senderCompId,targetCompId string) (err error) {
+func QueryEnterOrder(senderCompId, targetCompId string) (err error) {
 	defer func() {
 		if e := recover(); e != nil {
 			err = e.(error)
@@ -547,10 +546,10 @@ func QueryEnterOrder(senderCompId,targetCompId string) (err error) {
 
 	var beginString string = "FIX.4.4"
 	/*
-	beginString, err = queryVersion()
-	if err != nil {
-		return err
-	}*/
+		beginString, err = queryVersion()
+		if err != nil {
+			return err
+		}*/
 
 	var order quickfix.Messagable
 	switch beginString {
@@ -568,32 +567,32 @@ func QueryEnterOrder(senderCompId,targetCompId string) (err error) {
 
 	case quickfix.BeginStringFIX44:
 		symbol := "BTC-USD"
-		price := "60000"	
+		price := "60000"
 		var side, qty string
 
 		start := time.Now()
 		midsize := 0.01
-		for i := range 1000 {
-			if i%2 == 0 {	
-				side = "2"			
-				qty = fmt.Sprintf("%f", midsize+float64(rand.Intn(10))/1000.0)				
-			}else {	
-				side = "2"			
-				qty = fmt.Sprintf("%f", midsize-float64(rand.Intn(10))/1000.0)			
+		for i := range 1 {
+			if i%2 == 0 {
+				side = "2"
+				qty = fmt.Sprintf("%f", midsize+float64(rand.Intn(10))/1000.0)
+			} else {
+				side = "2"
+				qty = fmt.Sprintf("%f", midsize-float64(rand.Intn(10))/1000.0)
 			}
 			//fmt.Printf("qty=%v,symbol=%s\n", qty,symbol)
-			order = queryNewOrderSingle44(senderCompId,targetCompId,side,symbol,qty,price)
+			order = queryNewOrderSingle44(senderCompId, targetCompId, side, symbol, qty, price)
 			quickfix.Send(order)
-			time.Sleep(1000 * time.Millisecond )
+			time.Sleep(1000 * time.Millisecond)
 		}
 		totoalTime := time.Since(start).Milliseconds()
-		fmt.Printf("sent 1000 orders in %v",totoalTime)
+		fmt.Printf("sent 1000 orders in %v", totoalTime)
 
 		return
 	case quickfix.BeginStringFIXT11:
 		order = queryNewOrderSingle50()
 	}
-	
+
 	return quickfix.Send(order)
 }
 
@@ -638,7 +637,7 @@ func QueryCancelOrder() (err error) {
 	return
 }
 
-func QueryMarketDataRequest(senderCompId,targetCompId string) error {
+func QueryMarketDataRequest(senderCompId, targetCompId string) error {
 	beginString, err := queryVersion()
 	if err != nil {
 		return err
@@ -653,7 +652,7 @@ func QueryMarketDataRequest(senderCompId,targetCompId string) error {
 		req = queryMarketDataRequest43()
 
 	case quickfix.BeginStringFIX44:
-		req = queryMarketDataRequest44(senderCompId,targetCompId)
+		req = queryMarketDataRequest44(senderCompId, targetCompId)
 
 	case quickfix.BeginStringFIXT11:
 		req = queryMarketDataRequest50()

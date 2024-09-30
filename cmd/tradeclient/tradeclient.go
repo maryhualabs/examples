@@ -17,12 +17,12 @@ package tradeclient
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
 	"path"
-	"crypto/ed25519"
-	"encoding/hex"
 	"strconv"
 
 	"github.com/quickfixgo/examples/cmd/tradeclient/internal"
@@ -30,9 +30,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/quickfixgo/field"
-	"github.com/quickfixgo/quickfix"
 	"github.com/quickfixgo/fix44/logon"
-	
+	"github.com/quickfixgo/quickfix"
 )
 
 // TradeClient implements the quickfix.Application interface
@@ -58,13 +57,14 @@ func (e TradeClient) FromAdmin(msg *quickfix.Message, sessionID quickfix.Session
 	return nil
 }
 
-
 const (
-	FIX_SEP = "\u0001"
-	
+	FIX_SEP    = "\u0001"
+	Publickey  = "public key"
+	Privatekey = "private key"
+	// APIKey = "83a538df07046f4430303faf09e9c6933306b5e7f4157b5c0cdc35d16f0f9033"
+	// APIKey = "4044a57206f7494b8692079e720aa911f3234e4d61079db28d36a405ae3630cb"
 	//use the api key ID for now
-	APIKey = "5dc3632619bbb1a5e92070db90f1f476de646ef4b1ad756e341a47f851467bab"  
-
+	APIKey = "api key"
 )
 
 // ToAdmin implemented as part of Application interface
@@ -74,54 +74,54 @@ func (e TradeClient) ToAdmin(msg *quickfix.Message, sessionID quickfix.SessionID
 		println("wrong message type")
 	}
 
-	if msgType == "A" {		
+	if msgType == "A" {
 		msg.Body.Set(field.NewPassword(APIKey))
-		signature,err := e.sign(msg); 
-		if err != nil{
-			println( "error in sign the message")
-		}		
+		signature, err := e.sign(msg)
+		if err != nil {
+			println("error in sign the message")
+		}
 		msg.Body.Set(field.NewRawData(signature))
-	}	
+	}
 
 	utils.PrintInfo(fmt.Sprintf("ToAdmin: %s", msg.String()))
 }
 
-func (e TradeClient) sign(logonmsg *quickfix.Message) (string,error){
+func (e TradeClient) sign(logonmsg *quickfix.Message) (string, error) {
 	msg := logon.FromMessage(logonmsg)
 
 	sendingTime, err := msg.GetSendingTime()
 	if err != nil {
 		println("error in getting SendingTime from the logon")
-		return "",&quickfix.RejectLogon{Text: "invalid SendingTime"}
+		return "", &quickfix.RejectLogon{Text: "invalid SendingTime"}
 	}
 
 	seqNum, err := msg.GetMsgSeqNum()
 	if err != nil {
 		println("error in getting MsgSeqNum from the logon")
-		return "",&quickfix.RejectLogon{Text: "invalid MsgSeqNum"}
+		return "", &quickfix.RejectLogon{Text: "invalid MsgSeqNum"}
 	}
 
 	senderCompID, err := msg.GetSenderCompID()
 	if err != nil {
 		println("error in getting SenderCompID from the logon")
-		return "",&quickfix.RejectLogon{Text: "invalid SenderCompID"}
+		return "", &quickfix.RejectLogon{Text: "invalid SenderCompID"}
 	}
 
 	targetCompID, err := msg.GetTargetCompID()
 	if err != nil {
 		println("error in getting TargetCompID from the logon")
-		return "",&quickfix.RejectLogon{Text: "invalid TargetCompID"}
+		return "", &quickfix.RejectLogon{Text: "invalid TargetCompID"}
 	}
 
 	msgToSign := sendingTime.Format("20060102-15:04:05.000") + FIX_SEP +
 		strconv.Itoa(seqNum) + FIX_SEP +
 		senderCompID + FIX_SEP +
 		targetCompID
-	
-	privateKeyBytes,_ := hex.DecodeString(Privatekey)
+
+	privateKeyBytes, _ := hex.DecodeString(Privatekey)
 	ed25519PrivateKey := ed25519.PrivateKey(privateKeyBytes)
 	signature := ed25519.Sign(ed25519PrivateKey, []byte(msgToSign))
-	return hex.EncodeToString(signature),nil
+	return hex.EncodeToString(signature), nil
 }
 
 // ToApp implemented as part of Application interface
@@ -254,3 +254,4 @@ Loop:
 	utils.PrintInfo("stopped")
 	return nil
 }
+
